@@ -1,0 +1,41 @@
+[
+    {
+        "domain": ".x.com",
+        "expirationDate": 1807364362.143318,
+        "hostOnly": false,
+        "httpOnly": true,
+        "name": "auth_token",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "YOUR_AUTH_TOKEN_HERE"
+    },
+    {
+        "domain": ".x.com",
+        "expirationDate": 1804340379.857043,
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "twid",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "u%3DYOUR_USER_ID_HERE"
+    },
+    {
+        "domain": ".x.com",
+        "expirationDate": 1807364368.672552,
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "ct0",
+        "path": "/",
+        "sameSite": "lax",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "YOUR_CT0_TOKEN_HERE"
+    }
+]

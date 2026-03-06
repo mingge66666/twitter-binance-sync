@@ -1,0 +1,19 @@
+services:
+  twitter-sync:
+    build: .
+    container_name: twitter-sync
+    restart: always
+    env_file: .env
+    volumes:
+      - ./db:/app/db
+      - ./logs:/app/logs
+      - ./cookies:/app/cookies
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

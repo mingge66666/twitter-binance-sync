@@ -1,0 +1,25 @@
+twitter:
+  username: "{{TWITTER_USERNAME}}"
+  profile_url: "https://x.com/{{TWITTER_USERNAME}}"
+  cookies_path: "./cookies/twitter.json"
+
+binance_square:
+  api_endpoint: "https://www.binance.com/bapi/composite/v1/public/pgc/openApi/content/add"
+  inter_request_delay_seconds: 10
+  max_content_length: 900
+
+scheduler:
+  interval_minutes: 60
+  jitter_minutes: 5
+  daily_digest_hour_utc8: 21
+  midnight_reset_hour_utc8: 0
+
+limits:
+  max_retries: 3
+  daily_post_warn_threshold: 25
+
+logging:
+  level: "INFO"
+  file: "./logs/sync.log"
+  max_bytes: 52428800
+  backup_count: 5

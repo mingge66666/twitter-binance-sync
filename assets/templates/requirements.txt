@@ -1,0 +1,6 @@
+playwright==1.42.0
+apscheduler==3.10.4
+aiohttp==3.9.3
+loguru==0.7.2
+pyyaml==6.0.1
+python-dotenv==1.0.1
