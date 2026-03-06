@@ -1,41 +1,45 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/%F0%9F%90%A6%E2%86%92%F0%9F%9F%A1-Twitter_to_Binance-black?style=for-the-badge&labelColor=1DA1F2" alt="hero"/>
-
-# Twitter-Binance-Sync
-
-### Auto-sync Twitter/X tweets to Binance Square
-### 自动同步推文到币安广场
+<!-- Hero Banner -->
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1DA1F2,100:F0B90B&height=220&section=header&text=Twitter-Binance-Sync&fontSize=42&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Auto-sync%20Tweets%20to%20Binance%20Square%20%7C%20%E8%87%AA%E5%8A%A8%E5%90%8C%E6%AD%A5%E6%8E%A8%E6%96%87%E5%88%B0%E5%B8%81%E5%AE%89%E5%B9%BF%E5%9C%BA&descSize=16&descAlignY=55" width="100%"/>
 
 <br/>
 
-<!-- Row 1: Tech Stack -->
+<!-- Gold Badges Row -->
+<img src="https://img.shields.io/badge/%E2%9C%A8_PRODUCTION-READY-gold?style=for-the-badge" alt="Production Ready"/>
+<img src="https://img.shields.io/badge/%F0%9F%94%92_SECURITY-AUDITED-gold?style=for-the-badge" alt="Security Audited"/>
+<img src="https://img.shields.io/badge/%F0%9F%9A%80_ZERO_CONFIG-FOR_BEGINNERS-gold?style=for-the-badge" alt="Zero Config"/>
+
+<br/><br/>
+
+<!-- Tech Stack - Big -->
 [![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
 [![Playwright](https://img.shields.io/badge/Playwright-1.42-45ba4b?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev)
 [![SQLite](https://img.shields.io/badge/SQLite-WAL_Mode-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
 [![asyncio](https://img.shields.io/badge/asyncio-Powered-FFD43B?style=for-the-badge&logo=python&logoColor=black)](https://docs.python.org/3/library/asyncio.html)
 
-<!-- Row 2: Platform & Status -->
+<!-- Platform Integration -->
 [![Binance](https://img.shields.io/badge/Binance_Square-OpenAPI-F0B90B?style=flat-square&logo=binance&logoColor=white)](https://www.binance.com/square)
 [![Twitter](https://img.shields.io/badge/Twitter/X-GraphQL-000000?style=flat-square&logo=x&logoColor=white)](https://x.com)
-[![Discord](https://img.shields.io/badge/Discord-Notifications-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com)
+[![Discord](https://img.shields.io/badge/Discord-Alerts-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com)
 [![APScheduler](https://img.shields.io/badge/APScheduler-Cron+Interval-FF6B6B?style=flat-square)](https://apscheduler.readthedocs.io)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-blueviolet?style=flat-square)](https://claude.ai)
 
-<!-- Row 3: Meta -->
+<!-- Repo Meta - Dynamic -->
 [![License](https://img.shields.io/github/license/yansc153/twitter-binance-sync?style=flat-square&color=green)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/yansc153/twitter-binance-sync?style=flat-square&logo=github)](https://github.com/yansc153/twitter-binance-sync/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/yansc153/twitter-binance-sync?style=flat-square&logo=github&color=gold)](https://github.com/yansc153/twitter-binance-sync/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/yansc153/twitter-binance-sync?style=flat-square&logo=github)](https://github.com/yansc153/twitter-binance-sync/network)
-[![GitHub last commit](https://img.shields.io/github/last-commit/yansc153/twitter-binance-sync?style=flat-square)](https://github.com/yansc153/twitter-binance-sync/commits)
+[![GitHub last commit](https://img.shields.io/github/last-commit/yansc153/twitter-binance-sync?style=flat-square&color=blue)](https://github.com/yansc153/twitter-binance-sync/commits)
 [![GitHub repo size](https://img.shields.io/github/repo-size/yansc153/twitter-binance-sync?style=flat-square)](https://github.com/yansc153/twitter-binance-sync)
+[![GitHub issues](https://img.shields.io/github/issues/yansc153/twitter-binance-sync?style=flat-square)](https://github.com/yansc153/twitter-binance-sync/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/yansc153/twitter-binance-sync/pulls)
 
 <br/>
 
-> **One command to deploy. Zero code to write. Just provide your keys.**
+> **🐦 → 🟡 One command to deploy. Zero code to write. Just provide your keys.**
 >
-> **一键部署，零代码，只需提供你的密钥。**
+> **🐦 → 🟡 一键部署，零代码，只需提供你的密钥。**
 
 <br/>
 
@@ -268,18 +272,31 @@ docker exec twitter-sync python main.py --test
 
 <br/>
 
-<img src="https://img.shields.io/badge/Made_with-%E2%9D%A4%EF%B8%8F-red?style=for-the-badge" alt="Made with love"/>
-<img src="https://img.shields.io/badge/Powered_by-Claude_Code-blueviolet?style=for-the-badge" alt="Powered by Claude Code"/>
-<img src="https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge" alt="Production Ready"/>
+## ⭐ Star History
+
+<a href="https://star-history.com/#yansc153/twitter-binance-sync&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yansc153/twitter-binance-sync&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yansc153/twitter-binance-sync&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yansc153/twitter-binance-sync&type=Date" width="700" />
+  </picture>
+</a>
 
 <br/><br/>
 
-**If this project helps you, please give it a Star** ⭐
+**If this project helps you, please give it a Star** ⭐ **it means a lot!**
 
-**如果这个项目对你有帮助，请点个 Star** ⭐
+**如果这个项目对你有帮助，请点个 Star** ⭐ **这对我很重要！**
 
 <br/>
 
-[![Star History Chart](https://api.star-history.com/svg?repos=yansc153/twitter-binance-sync&type=Date)](https://star-history.com/#yansc153/twitter-binance-sync&Date)
+<img src="https://img.shields.io/badge/Made_with-%E2%9D%A4%EF%B8%8F-red?style=for-the-badge" alt="Made with love"/>
+<img src="https://img.shields.io/badge/Powered_by-Claude_Code-blueviolet?style=for-the-badge" alt="Powered by Claude Code"/>
+<img src="https://img.shields.io/badge/3x_Security-Audited-gold?style=for-the-badge" alt="3x Audited"/>
+
+<br/><br/>
+
+<!-- Footer Wave -->
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1DA1F2,100:F0B90B&height=100&section=footer" width="100%"/>
 
 </div>
