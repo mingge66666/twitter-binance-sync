@@ -1,16 +1,43 @@
 <div align="center">
 
+<img src="https://img.shields.io/badge/%F0%9F%90%A6%E2%86%92%F0%9F%9F%A1-Twitter_to_Binance-black?style=for-the-badge&labelColor=1DA1F2" alt="hero"/>
+
 # Twitter-Binance-Sync
 
-**Auto-sync Twitter/X tweets to Binance Square**
+### Auto-sync Twitter/X tweets to Binance Square
+### 自动同步推文到币安广场
 
-**自动同步推文到币安广场**
+<br/>
 
+<!-- Row 1: Tech Stack -->
 [![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
-[![Playwright](https://img.shields.io/badge/Playwright-Powered-45ba4b?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev)
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-blueviolet?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMiAxNWwtNS01IDEuNDEtMS40MUwxMCAxNC4xN2w3LjU5LTcuNTlMMTkgOGwtOSA5eiIvPjwvc3ZnPg==)](https://claude.ai)
+[![Playwright](https://img.shields.io/badge/Playwright-1.42-45ba4b?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev)
+[![SQLite](https://img.shields.io/badge/SQLite-WAL_Mode-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
+[![asyncio](https://img.shields.io/badge/asyncio-Powered-FFD43B?style=for-the-badge&logo=python&logoColor=black)](https://docs.python.org/3/library/asyncio.html)
+
+<!-- Row 2: Platform & Status -->
+[![Binance](https://img.shields.io/badge/Binance_Square-OpenAPI-F0B90B?style=flat-square&logo=binance&logoColor=white)](https://www.binance.com/square)
+[![Twitter](https://img.shields.io/badge/Twitter/X-GraphQL-000000?style=flat-square&logo=x&logoColor=white)](https://x.com)
+[![Discord](https://img.shields.io/badge/Discord-Notifications-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com)
+[![APScheduler](https://img.shields.io/badge/APScheduler-Cron+Interval-FF6B6B?style=flat-square)](https://apscheduler.readthedocs.io)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-blueviolet?style=flat-square)](https://claude.ai)
+
+<!-- Row 3: Meta -->
+[![License](https://img.shields.io/github/license/yansc153/twitter-binance-sync?style=flat-square&color=green)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/yansc153/twitter-binance-sync?style=flat-square&logo=github)](https://github.com/yansc153/twitter-binance-sync/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/yansc153/twitter-binance-sync?style=flat-square&logo=github)](https://github.com/yansc153/twitter-binance-sync/network)
+[![GitHub last commit](https://img.shields.io/github/last-commit/yansc153/twitter-binance-sync?style=flat-square)](https://github.com/yansc153/twitter-binance-sync/commits)
+[![GitHub repo size](https://img.shields.io/github/repo-size/yansc153/twitter-binance-sync?style=flat-square)](https://github.com/yansc153/twitter-binance-sync)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/yansc153/twitter-binance-sync/pulls)
+
+<br/>
+
+> **One command to deploy. Zero code to write. Just provide your keys.**
+>
+> **一键部署，零代码，只需提供你的密钥。**
+
+<br/>
 
 [English](#english) | [中文](#中文)
 
@@ -239,10 +266,20 @@ docker exec twitter-sync python main.py --test
 
 <div align="center">
 
-### Star History
+<br/>
 
-如果这个项目对你有帮助，请给一个 Star ⭐
+<img src="https://img.shields.io/badge/Made_with-%E2%9D%A4%EF%B8%8F-red?style=for-the-badge" alt="Made with love"/>
+<img src="https://img.shields.io/badge/Powered_by-Claude_Code-blueviolet?style=for-the-badge" alt="Powered by Claude Code"/>
+<img src="https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge" alt="Production Ready"/>
 
-If this project helps you, please give it a Star ⭐
+<br/><br/>
+
+**If this project helps you, please give it a Star** ⭐
+
+**如果这个项目对你有帮助，请点个 Star** ⭐
+
+<br/>
+
+[![Star History Chart](https://api.star-history.com/svg?repos=yansc153/twitter-binance-sync&type=Date)](https://star-history.com/#yansc153/twitter-binance-sync&Date)
 
 </div>
