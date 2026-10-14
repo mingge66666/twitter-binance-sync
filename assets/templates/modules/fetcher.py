@@ -146,17 +146,20 @@ async def fetch_tweets(config):
     async def handle_response(response):
         nonlocal auth_error
         url = response.url
-        if "/graphql/" in url and "UserTweets" in url:
-            try:
-                data = await response.json()
-                has_err, err_msg = check_auth_error(data)
-                if has_err:
-                    auth_error = err_msg
-                    return
-                captured_responses.append(data)
-                logger.info("Captured UserTweets GraphQL response")
-            except Exception as e:
-                logger.warning(f"Failed to parse XHR response: {e}")
+        # 打印所有 GraphQL 请求，方便调试
+        if "/graphql/" in url:
+            logger.info(f"GraphQL: {url.split('/graphql/')[-1][:80]}")
+            if any(x in url for x in ["UserTweets", "UserTweetsAndReplies", "UserMedia", "UserByScreenName"]):
+                try:
+                    data = await response.json()
+                    has_err, err_msg = check_auth_error(data)
+                    if has_err:
+                        auth_error = err_msg
+                        return
+                    captured_responses.append(data)
+                    logger.info(f"Captured GraphQL response containing tweets data")
+                except Exception as e:
+                    logger.warning(f"Failed to parse XHR response: {e}")
 
     all_tweets = []
 
@@ -176,14 +179,12 @@ async def fetch_tweets(config):
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             viewport={"width": 1920, "height": 1080},
             locale="en-US",
+            java_script_enabled=True,
         )
 
-        # 核心：注入反自动化特征脚本，降低风控拦截概率
+        # 隐藏 webdriver 特征
         await context.add_init_script("""
-            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-            window.navigator.chrome = { runtime: {} };
-            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
         """)
 
         # Load cookies
@@ -191,45 +192,34 @@ async def fetch_tweets(config):
         await context.add_cookies(pw_cookies)
 
         page = await context.new_page()
-
-        # Attach response listener
         page.on("response", handle_response)
 
         try:
             logger.info(f"Navigating to {profile_url}")
-            # 改为 domcontentloaded 避免因后台长连接导致 networkidle 超时
-            response = await page.goto(profile_url, wait_until="domcontentloaded", timeout=120000)
-            
-            # 稍作等待，让前端 JS 开始发起 XHR 请求
-            await asyncio.sleep(3)
+            # 改用 domcontentloaded，并加长等待
+            await page.goto(profile_url, wait_until="domcontentloaded", timeout=60000)
+            await asyncio.sleep(6)  # 给页面时间发请求
 
-            # Check for login redirect
             if page.url and "/login" in page.url:
                 auth_error = "Redirected to login page -- cookies expired"
                 await browser.close()
                 return [], auth_error
 
-            # Wait for XHR to be captured
+            # 多等一会儿
             for _ in range(15):
                 if captured_responses or auth_error:
                     break
                 await asyncio.sleep(1)
 
-            if auth_error:
-                await browser.close()
-                return [], auth_error
-
-            # Log current URL for debugging
             logger.info(f"Current page URL: {page.url}")
 
             if not captured_responses:
                 logger.warning("No UserTweets XHR captured, trying scroll...")
-                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                await asyncio.sleep(5)
-                for _ in range(10):
+                for _ in range(3):  # 多滚几次
+                    await page.evaluate("window.scrollBy(0, window.innerHeight)")
+                    await asyncio.sleep(3)
                     if captured_responses:
                         break
-                    await asyncio.sleep(1)
 
             # Parse first batch
             cursor = None
