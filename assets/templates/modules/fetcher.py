@@ -149,7 +149,7 @@ async def fetch_tweets(config):
         # 打印所有 GraphQL 请求，方便调试
         if "/graphql/" in url:
             logger.info(f"GraphQL: {url.split('/graphql/')[-1][:80]}")
-            if any(x in url for x in ["UserTweets", "UserTweetsAndReplies", "UserMedia", "UserByScreenName"]):
+            if any(x in url for x in ["UserTweets", "UserTweetsAndReplies", "UserMedia", "UserOriginalsTimeline", "UserPosts", "UserByScreenName"]):
                 try:
                     data = await response.json()
                     has_err, err_msg = check_auth_error(data)
