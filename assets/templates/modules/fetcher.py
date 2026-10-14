@@ -41,11 +41,7 @@ def load_cookies(cookies_path):
 
 
 def extract_browsing_user_id(cookies_path):
-    """Extract the browsing account's user ID from the twid cookie.
-
-    The twid cookie value is URL-encoded in the form 'u%3D{numeric_id}'.
-    This function decodes it and extracts the numeric user ID.
-    """
+    """Extract the browsing account's user ID from the twid cookie."""
     with open(cookies_path, "r") as f:
         raw_cookies = json.load(f)
 
@@ -67,9 +63,7 @@ def parse_tweets_from_response(data):
 
     try:
         user_result = data.get("data", {}).get("user", {}).get("result", {})
-        # Twitter may use "timeline_v2" or "timeline" depending on version
         timeline_obj = user_result.get("timeline_v2", user_result.get("timeline", {}))
-        # The timeline object may have a nested "timeline" key
         inner_timeline = timeline_obj.get("timeline", timeline_obj)
         instructions = inner_timeline.get("instructions", [])
     except (AttributeError, TypeError):
@@ -79,7 +73,6 @@ def parse_tweets_from_response(data):
     bottom_cursor = None
 
     for instruction in instructions:
-        # Handle both TimelineAddEntries and TimelineAddToModule
         entries = instruction.get("entries", [])
         if not entries and instruction.get("type") == "TimelineAddToModule":
             entries = instruction.get("moduleItems", [])
@@ -87,7 +80,6 @@ def parse_tweets_from_response(data):
         for entry in entries:
             entry_id = entry.get("entryId", "")
 
-            # Cursor entries
             if "cursor-bottom" in entry_id:
                 content = entry.get("content", {})
                 bottom_cursor = content.get("value", "")
@@ -96,16 +88,13 @@ def parse_tweets_from_response(data):
             if "cursor-top" in entry_id:
                 continue
 
-            # Collect item contents from this entry
             items_to_process = []
             content = entry.get("content", {})
             entry_type = content.get("entryType", content.get("__typename", ""))
 
             if entry_type == "TimelineTimelineItem":
-                # Single tweet entry
                 items_to_process.append(content.get("itemContent", {}))
             elif entry_type == "TimelineTimelineModule":
-                # Conversation/thread module -- contains multiple items
                 module_items = content.get("items", [])
                 for mi in module_items:
                     item = mi.get("item", {})
@@ -118,7 +107,6 @@ def parse_tweets_from_response(data):
                 if not result:
                     continue
 
-                # Handle TweetWithVisibilityResults wrapper
                 if result.get("__typename") == "TweetWithVisibilityResults":
                     result = result.get("tweet", {})
 
@@ -180,6 +168,7 @@ async def fetch_tweets(config):
                 "--disable-setuid-sandbox",
                 "--disable-dev-shm-usage",
                 "--disable-blink-features=AutomationControlled",
+                "--disable-infobars",
             ]
         )
 
@@ -188,6 +177,14 @@ async def fetch_tweets(config):
             viewport={"width": 1920, "height": 1080},
             locale="en-US",
         )
+
+        # 核心：注入反自动化特征脚本，降低风控拦截概率
+        await context.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            window.navigator.chrome = { runtime: {} };
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+        """)
 
         # Load cookies
         pw_cookies = load_cookies(cookies_path)
@@ -200,7 +197,11 @@ async def fetch_tweets(config):
 
         try:
             logger.info(f"Navigating to {profile_url}")
-            response = await page.goto(profile_url, wait_until="networkidle", timeout=60000)
+            # 改为 domcontentloaded 避免因后台长连接导致 networkidle 超时
+            response = await page.goto(profile_url, wait_until="domcontentloaded", timeout=120000)
+            
+            # 稍作等待，让前端 JS 开始发起 XHR 请求
+            await asyncio.sleep(3)
 
             # Check for login redirect
             if page.url and "/login" in page.url:
@@ -209,7 +210,7 @@ async def fetch_tweets(config):
                 return [], auth_error
 
             # Wait for XHR to be captured
-            for _ in range(10):
+            for _ in range(15):
                 if captured_responses or auth_error:
                     break
                 await asyncio.sleep(1)
@@ -225,13 +226,13 @@ async def fetch_tweets(config):
                 logger.warning("No UserTweets XHR captured, trying scroll...")
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 await asyncio.sleep(5)
-                # Try waiting more
-                for _ in range(5):
+                for _ in range(10):
                     if captured_responses:
                         break
                     await asyncio.sleep(1)
 
             # Parse first batch
+            cursor = None
             for resp_data in captured_responses:
                 tweets, cursor = parse_tweets_from_response(resp_data)
                 all_tweets.extend(tweets)
