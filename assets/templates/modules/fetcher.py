@@ -149,7 +149,7 @@ async def fetch_tweets(config):
         # 打印所有 GraphQL 请求，方便调试
         if "/graphql/" in url:
             logger.info(f"GraphQL: {url.split('/graphql/')[-1][:80]}")
-            if any(x in url for x in ["UserTweets", "UserTweetsAndReplies", "UserMedia", "UserOriginalsTimeline", "UserPosts", "UserByScreenName"]):
+            if any(x in url for x in ["UserTweets", "UserTweetsAndReplies", "UserOriginalsTimeline", "UserPosts"]):
                 try:
                     data = await response.json()
                     has_err, err_msg = check_auth_error(data)
@@ -198,7 +198,12 @@ async def fetch_tweets(config):
             logger.info(f"Navigating to {profile_url}")
             # 改用 domcontentloaded，并加长等待
             await page.goto(profile_url, wait_until="domcontentloaded", timeout=60000)
-            await asyncio.sleep(6)  # 给页面时间发请求
+            await asyncio.sleep(8)
+
+            # 主动滚动，触发加载推文
+            for _ in range(4):
+                await page.evaluate("window.scrollBy(0, window.innerHeight)")
+                await asyncio.sleep(2)
 
             if page.url and "/login" in page.url:
                 auth_error = "Redirected to login page -- cookies expired"
