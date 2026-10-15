@@ -24,16 +24,19 @@ def is_mostly_english(text: str) -> bool:
 
 
 def translate_to_chinese(text: str) -> str:
-    """英文翻译成中文，失败则返回原文"""
+    """英文翻译成中文，失败则返回原文（带延迟和重试）"""
     if not TRANSLATOR_AVAILABLE:
         return text
-    try:
-        # 自动检测源语言，目标为简体中文
-        result = GoogleTranslator(source='auto', target='zh-CN').translate(text)
-        if result and result.strip():
-            return result.strip()
-    except Exception as e:
-        logger.warning(f"Translation failed: {e}")
+    import time
+    for attempt in range(3):
+        try:
+            time.sleep(0.8)  # 降低限流概率
+            result = GoogleTranslator(source='auto', target='zh-CN').translate(text)
+            if result and result.strip():
+                return result.strip()
+        except Exception as e:
+            logger.warning(f"Translation attempt {attempt+1} failed: {e}")
+            time.sleep(1.5 * (attempt + 1))
     return text
 
 
