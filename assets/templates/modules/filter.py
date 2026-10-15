@@ -16,19 +16,38 @@ def get_media_types(tweet):
     return media_list
 
 def get_image_urls(tweet, max_images=4):
-    """从推文对象提取最多 4 张图片直链。"""
+    """从推文对象提取最多 4 张图片直链（按 media_id / 规范化 URL 去重）。"""
     urls = []
+    seen = set()
     legacy = tweet.get("legacy", {})
-    for source in (legacy.get("extended_entities") or {}, legacy.get("entities") or {}):
+
+    # 优先只读 extended_entities；没有再读 entities，避免同一张图出现两次
+    if legacy.get("extended_entities"):
+        sources = [legacy["extended_entities"]]
+    elif legacy.get("entities"):
+        sources = [legacy["entities"]]
+    else:
+        sources = []
+
+    for source in sources:
         for m in source.get("media") or []:
             if m.get("type") != "photo":
                 continue
+
+            mid = str(m.get("id_str") or m.get("id") or "")
             u = m.get("media_url_https") or m.get("media_url")
-            if not u or u in urls:
+            if not u:
                 continue
-            # 尽量要原图
+
+            base = u.split("?")[0]
+            key = mid or base
+            if key in seen:
+                continue
+            seen.add(key)
+
             if "pbs.twimg.com" in u and "name=" not in u:
                 u = u + ("&" if "?" in u else "?") + "name=orig"
+
             urls.append(u)
             if len(urls) >= max_images:
                 return urls
