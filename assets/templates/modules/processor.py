@@ -24,39 +24,21 @@ def is_mostly_english(text: str) -> bool:
 
 
 def translate_to_chinese(text: str) -> str:
-    """英文翻译成中文：优先 MyMemory，失败再试 Google"""
+    """英文翻译成中文，失败则返回原文"""
     if not TRANSLATOR_AVAILABLE:
         logger.warning("Translator not available, skip translation")
         return text
-
-    if len(text.strip()) < 3:
-        return text
-
     import time
-
-    engines = [
-        # MyMemory 必须用完整语言名或地区代码
-        ("MyMemory", lambda: MyMemoryTranslator(
-            source='english', target='chinese simplified'
-        ).translate(text)),
-        ("Google", lambda: GoogleTranslator(
-            source='auto', target='zh-CN'
-        ).translate(text)),
-    ]
-
-    for name, fn in engines:
-        for attempt in range(2):
-            try:
-                time.sleep(0.8)
-                result = fn()
-                if result and result.strip() and result.strip() != text.strip():
-                    logger.info(f"Translated via {name}: {result[:80]}...")
-                    return result.strip()
-            except Exception as e:
-                logger.warning(f"{name} translation attempt {attempt+1} failed: {e}")
-                time.sleep(1.5 * (attempt + 1))
-
-    logger.warning("All translators failed, using original English text")
+    for attempt in range(3):
+        try:
+            time.sleep(0.8)
+            result = GoogleTranslator(source='auto', target='zh-CN').translate(text)
+            if result and result.strip() and result.strip() != text.strip():
+                return result.strip()
+        except Exception as e:
+            logger.warning(f"Translation attempt {attempt+1} failed: {e}")
+            time.sleep(1.5 * (attempt + 1))
+    logger.warning("All translation attempts failed, using original text")
     return text
 
 
