@@ -1,8 +1,9 @@
 import re
+import time
 from loguru import logger
 
 try:
-    from deep_translator import GoogleTranslator
+    from deep_translator import GoogleTranslator, MyMemoryTranslator
     TRANSLATOR_AVAILABLE = True
 except ImportError:
     TRANSLATOR_AVAILABLE = False
@@ -15,7 +16,6 @@ def is_mostly_english(text: str) -> bool:
     """简单判断文本是否主要为英文"""
     if not text or not text.strip():
         return False
-    # 统计 ASCII 字母占比
     letters = sum(1 for c in text if c.isalpha())
     if letters == 0:
         return False
@@ -24,40 +24,49 @@ def is_mostly_english(text: str) -> bool:
 
 
 def translate_to_chinese(text: str) -> str:
-    """英文翻译成中文，失败则返回原文（带延迟和重试）"""
+    """英文翻译成中文：优先 MyMemory，失败再试 Google，都失败则返回原文"""
     if not TRANSLATOR_AVAILABLE:
+        logger.warning("Translator not available, skip translation")
         return text
-    import time
-    for attempt in range(3):
-        try:
-            time.sleep(0.8)  # 降低限流概率
-            result = GoogleTranslator(source='auto', target='zh-CN').translate(text)
-            if result and result.strip():
-                return result.strip()
-        except Exception as e:
-            logger.warning(f"Translation attempt {attempt+1} failed: {e}")
-            time.sleep(1.5 * (attempt + 1))
+
+    # 推文太短或几乎没字母，不翻译
+    if len(text.strip()) < 3:
+        return text
+
+    engines = [
+        ("MyMemory", lambda: MyMemoryTranslator(source='en', target='zh-CN').translate(text)),
+        ("Google", lambda: GoogleTranslator(source='auto', target='zh-CN').translate(text)),
+    ]
+
+    for name, fn in engines:
+        for attempt in range(2):
+            try:
+                time.sleep(0.6)
+                result = fn()
+                if result and result.strip() and result.strip() != text.strip():
+                    logger.info(f"Translated via {name}: {result[:80]}...")
+                    return result.strip()
+            except Exception as e:
+                logger.warning(f"{name} translation attempt {attempt+1} failed: {e}")
+                time.sleep(1.2 * (attempt + 1))
+
+    logger.warning("All translators failed, using original English text")
     return text
 
 
 def process_tweet(raw_text, max_length=900):
     """Strip URLs, normalize whitespace, optionally translate, truncate if needed."""
-    # Step 1: Strip URLs
     text = URL_PATTERN.sub('', raw_text)
-
-    # Step 2: Normalize whitespace
     text = re.sub(r'[^\S\n]+', ' ', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
     text = text.strip()
 
-    # Step 3: 如果是英文，翻译成中文
     if is_mostly_english(text):
         original = text
         text = translate_to_chinese(text)
-        if text != original:
-            logger.info(f"Translated to Chinese: {text[:80]}...")
+        if text == original:
+            logger.info("Kept original English (translation unavailable or failed)")
 
-    # Step 4: Truncate if exceeds max length
     if len(text) > max_length:
         truncated = text[:max_length]
         last_space = truncated.rfind(' ')
