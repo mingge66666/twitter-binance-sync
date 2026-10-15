@@ -52,7 +52,7 @@ async def sync_cycle(config):
             delay = config["binance_square"]["inter_request_delay_seconds"]
 
             success, result = await publisher.publish_to_square(
-                ft["content_clean"], api_endpoint, delay
+                ft["content_clean"], api_endpoint, delay, image_urls=[]
             )
 
             if success:
@@ -199,9 +199,11 @@ async def sync_cycle(config):
             db.save_tweet(tweet_data)
 
             success, result = await publisher.publish_to_square(
-                tweet_data["content_clean"], api_endpoint, delay
+                tweet_data["content_clean"],
+                api_endpoint,
+                delay,
+                image_urls=tweet_data.get("image_urls") or [],
             )
-
             if success:
                 db.update_tweet_status(
                     tweet_data["tweet_id"],
