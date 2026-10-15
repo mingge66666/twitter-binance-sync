@@ -15,6 +15,25 @@ def get_media_types(tweet):
 
     return media_list
 
+def get_image_urls(tweet, max_images=4):
+    """从推文对象提取最多 4 张图片直链。"""
+    urls = []
+    legacy = tweet.get("legacy", {})
+    for source in (legacy.get("extended_entities") or {}, legacy.get("entities") or {}):
+        for m in source.get("media") or []:
+            if m.get("type") != "photo":
+                continue
+            u = m.get("media_url_https") or m.get("media_url")
+            if not u or u in urls:
+                continue
+            # 尽量要原图
+            if "pbs.twimg.com" in u and "name=" not in u:
+                u = u + ("&" if "?" in u else "?") + "name=orig"
+            urls.append(u)
+            if len(urls) >= max_images:
+                return urls
+    return urls
+
 
 def get_tweet_text(tweet):
     """Get the full text from a tweet object."""
@@ -38,6 +57,7 @@ def filter_tweet(tweet, target_user_id, max_content_length=900):
         "has_images": 1 if "photo" in media_types else 0,
         "has_video": 1 if ("video" in media_types or "animated_gif" in media_types) else 0,
         "tweet_type": "original",
+        "image_urls": get_image_urls(tweet),  # ← 新增
     }
 
     # F-00: Dedup check
