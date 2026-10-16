@@ -14,7 +14,7 @@ QUEUE_FILE = "./tmp/telegram_ops_queue.json"
 
 async def _send_message(content: str) -> bool:
     if not OPS_TOKEN or not OPS_CHAT:
-        logger.debug("未配置 Telegram 运维 Bot，跳过通知")
+        logger.debug("未配置 Telegram 运维机器人，跳过通知")
         return False
     if len(content) > 4000:
         content = content[:4000] + "..."
@@ -43,7 +43,7 @@ async def _send_message(content: str) -> bool:
 async def _send_with_retry(content: str) -> bool:
     if await _send_message(content):
         return True
-    logger.info("Telegram 运维发送失败，30 秒后重试...")
+    logger.info("Telegram 运维发送失败，30 秒后重试…")
     await asyncio.sleep(30)
     if await _send_message(content):
         return True
@@ -66,14 +66,11 @@ def _queue_message(content: str):
     os.makedirs(os.path.dirname(QUEUE_FILE) or ".", exist_ok=True)
     with open(QUEUE_FILE, "w", encoding="utf-8") as f:
         json.dump(queue, f, ensure_ascii=False)
-    logger.info(f"运维消息已入队，队列长度={len(queue)}")
+    logger.info(f"运维消息已入队，当前队列长度={len(queue)}")
 
 
 def send_alert(message, severity="INFO"):
-    """
-    发送运维告警到 Telegram 私密频道。
-    severity: CRITICAL / ERROR / WARNING / INFO
-    """
+    """发送运维告警到 Telegram 私密频道。"""
     prefix = {
         "CRITICAL": "🔴【严重】",
         "ERROR": "🟠【错误】",
@@ -96,7 +93,7 @@ def send_alert(message, severity="INFO"):
 
 
 def send_daily_digest(stats):
-    """每日同步摘要（中文）。"""
+    """每日同步报告（中文）。"""
     now = datetime.now(UTC8)
     content = (
         f"📊 每日同步报告 — {now.strftime('%Y-%m-%d')}\n"
@@ -113,7 +110,7 @@ def send_daily_digest(stats):
 
 
 async def flush_queue():
-    """重试发送队列中的失败消息。"""
+    """重试发送队列中失败的运维消息。"""
     if not os.path.exists(QUEUE_FILE):
         return
     try:
@@ -136,5 +133,5 @@ async def flush_queue():
         os.remove(QUEUE_FILE)
 
     logger.info(
-        f"运维队列已处理：成功 {len(queue) - len(remaining)}，剩余 {len(remaining)}"
+        f"运维队列已处理：成功 {len(queue) - len(remaining)} 条，剩余 {len(remaining)} 条"
     )
