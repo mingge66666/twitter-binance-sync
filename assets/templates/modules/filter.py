@@ -1,7 +1,32 @@
 from modules import db
 from modules.processor import process_tweet
 from loguru import logger
+import re
 
+PERSONAL_LINK_PATTERNS = [
+    r"(?i)t\.me/", r"(?i)telegram\.me/",
+    r"(?i)discord\.gg/", r"(?i)discord\.com/invite",
+    r"(?i)youtube\.com/", r"(?i)youtu\.be/",
+    r"(?i)instagram\.com/", r"(?i)tiktok\.com/",
+    r"(?i)linktr\.ee/", r"(?i)bio\.link/", r"(?i)carrd\.co/",
+    r"(?i)bit\.ly/", r"(?i)tinyurl\.com/",
+]
+PROMO_KEYWORDS = [
+    "follow me", "follow for", "subscribe", "giveaway", "airdrop",
+    "dm me", "join my", "my channel", "my group", "link in bio",
+    "click the link", "retweet and", "like and rt",
+]
+OFFTOPIC_KEYWORDS = [
+    "happy birthday", "celebrating my", "enjoying life",
+    "wedding", "vacation", "holiday",
+]
+
+def has_personal_link(text: str) -> bool:
+    return any(re.search(p, text or "") for p in PERSONAL_LINK_PATTERNS)
+
+def has_promo_or_offtopic(text: str) -> bool:
+    lower = (text or "").lower()
+    return any(k in lower for k in PROMO_KEYWORDS + OFFTOPIC_KEYWORDS)
 
 def get_media_types(tweet):
     """Extract media types from tweet object."""
@@ -119,10 +144,21 @@ def filter_tweet(tweet, target_user_id, max_content_length=900):
     if not clean_text.strip():
         logger.debug(f"F-06 drop_empty: {tweet_id}")
         return False, "drop_empty", tweet_data
+        
+    # F-07 引流链接（必须用 raw_text，process 会剥 URL）
+    if has_personal_link(raw_text):
+        logger.debug(f"F-07 drop_personal_link: {tweet_id}")
+        return False, "drop_personal_link", tweet_data
 
+    # F-08 推广 / 非行情
+    if has_promo_or_offtopic(raw_text) or has_promo_or_offtopic(clean_text):
+        logger.debug(f"F-08 drop_offtopic: {tweet_id}")
+        return False, "drop_offtopic", tweet_data
+    
     # PASS
     tweet_data["content_clean"] = clean_text
     tweet_data["filter_result"] = "pass"
     tweet_data["status"] = "pending"
     logger.info(f"Tweet {tweet_id} passed filter, text: {clean_text[:80]}...")
     return True, "pass", tweet_data
+
