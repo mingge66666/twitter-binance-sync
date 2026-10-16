@@ -18,28 +18,31 @@ UTC8 = timezone(timedelta(hours=8))
 def load_config():
     config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
     if not os.path.exists(config_path):
-        print(f"[FATAL] config.yaml not found at {config_path}")
-        print("        Did you run init_project.py or rename config.yaml.template?")
+        print(f"[致命] 未找到 config.yaml，路径: {config_path}")
+        print("        请确认已运行 init_project.py，或已将 config.yaml.template 重命名为 config.yaml。")
         sys.exit(1)
-    with open(config_path, "r") as f:
+    with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def validate_env():
-    """Check that required environment variables are set before starting."""
+    """启动前检查必要的环境变量。"""
     missing = []
     for var in ["BINANCE_SQUARE_API_KEY"]:
         if not os.getenv(var):
             missing.append(var)
     if missing:
-        print(f"[FATAL] Required environment variables are empty: {', '.join(missing)}")
-        print("        Edit .env and fill in the values. See references/binance-api-guide.md.")
+        print(f"[致命] 以下环境变量为空: {', '.join(missing)}")
+        print("        请编辑 .env 填入对应值。可参考 references/binance-api-guide.md。")
         sys.exit(1)
 
-    # Discord is optional but warn if not configured
-    if not os.getenv("DISCORD_BOT_TOKEN") or not os.getenv("DISCORD_CHANNEL_ID"):
-        print("[WARN] DISCORD_BOT_TOKEN or DISCORD_CHANNEL_ID is empty.")
-        print("       Discord notifications will be disabled. Service will still run.")
+    if not os.getenv("TELEGRAM_OPS_BOT_TOKEN") or not os.getenv("TELEGRAM_OPS_CHAT_ID"):
+        print("[警告] 未配置 TELEGRAM_OPS_BOT_TOKEN 或 TELEGRAM_OPS_CHAT_ID。")
+        print("       运维通知将禁用，服务仍会正常运行。")
+
+    if not os.getenv("TELEGRAM_SYNC_BOT_TOKEN") or not os.getenv("TELEGRAM_SYNC_CHAT_ID"):
+        print("[警告] 未配置 TELEGRAM_SYNC_BOT_TOKEN 或 TELEGRAM_SYNC_CHAT_ID。")
+        print("       公开频道同步将禁用。")
 
 
 def setup_logging(config):
@@ -49,16 +52,14 @@ def setup_logging(config):
     max_bytes = log_config.get("max_bytes", 52428800)
     backup_count = log_config.get("backup_count", 5)
 
-    # Ensure log directory exists
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    os.makedirs(os.path.dirname(log_file) or ".", exist_ok=True)
 
-    # Remove default handler
     logger.remove()
-
-    # Console output
-    logger.add(sys.stderr, level=log_level, format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {message}")
-
-    # File output with rotation
+    logger.add(
+        sys.stderr,
+        level=log_level,
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {message}",
+    )
     logger.add(
         log_file,
         level=log_level,
@@ -75,51 +76,48 @@ def ensure_dirs():
 
 
 def enforce_cookie_permissions(config):
-    """Restrict cookie file to owner-only read on shared systems."""
+    """在共享环境下将 Cookie 文件权限收紧为仅所有者可读。"""
     cookies_path = config["twitter"]["cookies_path"]
     if os.path.exists(cookies_path):
         mode = os.stat(cookies_path).st_mode
         if mode & (stat.S_IRGRP | stat.S_IROTH):
             os.chmod(cookies_path, 0o600)
-            logger.warning(f"Fixed cookie file permissions to 600: {cookies_path}")
+            logger.warning(f"已将 Cookie 文件权限调整为 600: {cookies_path}")
 
 
 async def run_sync_cycle(config):
-    """Wrapper to run sync_cycle with error handling."""
+    """包装同步周期，捕获异常并发送运维通知。"""
     try:
         await sync_cycle(config)
     except Exception as e:
-        logger.exception(f"Sync cycle crashed: {e}")
-        notifier.send_alert(f"Sync cycle crashed: {e}", "ERROR")
+        logger.exception(f"同步周期异常退出: {e}")
+        notifier.send_alert(f"同步周期异常退出：{e}", "ERROR")
 
 
 async def test_mode(config):
-    """Dry run: fetch and filter only, no publishing."""
-    logger.info("=== TEST MODE (dry run, no publishing) ===")
+    """测试模式：只抓取和过滤，不实际发布。"""
+    logger.info("=== 测试模式（仅抓取过滤，不实际发布）===")
 
-    # Test Discord notification
-    notifier.send_alert("Test mode started - this is a connectivity test.", "INFO")
-    print("[INFO] Discord test message sent -- check your Discord channel to confirm delivery.")
+    notifier.send_alert("测试模式已启动，这是一条连通性测试消息。", "INFO")
+    print("[信息] 已发送运维测试消息，请到 Telegram 私密运维频道确认是否收到。")
 
-    # Check cookie file exists
     cookies_path = config["twitter"]["cookies_path"]
     if not os.path.exists(cookies_path):
-        print(f"\n[FAIL] Cookie file not found: {cookies_path}")
-        print("       Copy your Cookie-Editor export to this path.")
+        print(f"\n[失败] 未找到 Cookie 文件: {cookies_path}")
+        print("       请将 Cookie-Editor 导出的 JSON 复制到该路径。")
         return
 
-    # Test fetch
     from modules import fetcher, filter as tweet_filter
+
     raw_tweets, auth_error = await fetcher.fetch_tweets(config)
 
     if auth_error:
-        logger.error(f"Auth error: {auth_error}")
-        print(f"\n[FAIL] Twitter auth error: {auth_error}")
+        logger.error(f"登录异常: {auth_error}")
+        print(f"\n[失败] Twitter/X 登录异常: {auth_error}")
         return
 
-    print(f"\n[OK] Fetched {len(raw_tweets)} tweets from Twitter")
+    print(f"\n[成功] 已从 Twitter/X 抓取 {len(raw_tweets)} 条推文")
 
-    # Determine target user ID
     target_user_id = None
     for t in raw_tweets:
         core = t.get("core", {})
@@ -132,14 +130,14 @@ async def test_mode(config):
     for tweet in raw_tweets:
         tweet_id = tweet.get("rest_id", "")
         ok, result, data = tweet_filter.filter_tweet(tweet, target_user_id or "")
-        status = "PASS" if ok else f"DROP ({result})"
+        status = "通过" if ok else f"丢弃({result})"
         text_preview = data.get("content_raw", "")[:60]
         print(f"  {tweet_id}: {status} | {text_preview}")
         if ok:
             passed += 1
 
-    print(f"\n[SUMMARY] {passed}/{len(raw_tweets)} tweets would be published")
-    print("[OK] Test mode complete. No posts were made to Binance Square.")
+    print(f"\n[汇总] {passed}/{len(raw_tweets)} 条推文将通过过滤并可能被发布")
+    print("[完成] 测试模式结束，未向币安广场发帖。")
 
 
 def main():
@@ -151,26 +149,23 @@ def main():
     enforce_cookie_permissions(config)
     db.init_db()
 
-    # Handle --test flag
     if "--test" in sys.argv:
         asyncio.run(test_mode(config))
         return
 
-    logger.info("Twitter-to-Binance-Square sync service starting")
+    logger.info("Twitter → 币安广场同步服务正在启动")
     notifier.send_alert(
-        f"Service started at {datetime.now(UTC8).strftime('%Y-%m-%d %H:%M:%S')}",
-        "INFO"
+        f"服务已启动：{datetime.now(UTC8).strftime('%Y-%m-%d %H:%M:%S')}",
+        "INFO",
     )
 
-    # Create event loop FIRST, then bind APScheduler to it
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
     scheduler = AsyncIOScheduler(timezone="Asia/Shanghai", event_loop=loop)
 
-    # Primary sync job: every 60 minutes with jitter
     interval = config["scheduler"]["interval_minutes"]
-    jitter = config["scheduler"]["jitter_minutes"] * 60  # convert to seconds
+    jitter = config["scheduler"]["jitter_minutes"] * 60
 
     scheduler.add_job(
         run_sync_cycle,
@@ -179,11 +174,10 @@ def main():
         jitter=jitter,
         args=[config],
         id="sync_cycle",
-        name="Twitter Sync Cycle",
+        name="Twitter 同步周期",
         max_instances=1,
     )
 
-    # Daily digest at 21:00 UTC+8
     digest_hour = config["scheduler"]["daily_digest_hour_utc8"]
     scheduler.add_job(
         daily_digest,
@@ -191,10 +185,9 @@ def main():
         hour=digest_hour,
         minute=0,
         id="daily_digest",
-        name="Daily Digest",
+        name="每日报告",
     )
 
-    # Midnight reset at 00:00 UTC+8
     reset_hour = config["scheduler"]["midnight_reset_hour_utc8"]
     scheduler.add_job(
         midnight_reset,
@@ -202,12 +195,11 @@ def main():
         hour=reset_hour,
         minute=0,
         id="midnight_reset",
-        name="Midnight Reset",
+        name="午夜重置",
     )
 
-    # Graceful shutdown
     def shutdown(signum, frame):
-        logger.info("Received shutdown signal, cleaning up...")
+        logger.info("收到停止信号，正在清理…")
         scheduler.shutdown(wait=False)
         sys.exit(0)
 
@@ -215,15 +207,17 @@ def main():
     signal.signal(signal.SIGINT, shutdown)
 
     scheduler.start()
-    logger.info(f"Scheduler started: sync every {interval}min (+-{config['scheduler']['jitter_minutes']}min jitter)")
+    logger.info(
+        f"调度器已启动：每 {interval} 分钟同步一次"
+        f"（抖动 ±{config['scheduler']['jitter_minutes']} 分钟）"
+    )
 
-    # Run first cycle immediately, then keep event loop running
     loop.run_until_complete(run_sync_cycle(config))
 
     try:
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
-        logger.info("Service stopped")
+        logger.info("服务已停止")
     finally:
         loop.close()
 
