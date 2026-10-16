@@ -1,9 +1,10 @@
+import os
 import re
 import time
 import requests
 from loguru import logger
 
-URL_PATTERN = re.compile(r'https?://\S+')
+URL_PATTERN = re.compile(r"https?://\S+")
 
 
 def is_mostly_english(text: str) -> bool:
@@ -13,70 +14,78 @@ def is_mostly_english(text: str) -> bool:
     letters = sum(1 for c in text if c.isalpha())
     if letters == 0:
         return False
-    ascii_letters = sum(1 for c in text if 'a' <= c.lower() <= 'z')
+    ascii_letters = sum(1 for c in text if "a" <= c.lower() <= "z")
     return (ascii_letters / letters) > 0.6
 
 
 def translate_to_chinese(text: str, max_retries: int = 3) -> str:
-    """使用 MyMemory 公开 API 翻译成中文"""
+    """使用 DeepL API 将英文翻译成简体中文"""
     if not text or not text.strip():
         return text
 
-    url = "https://api.mymemory.translated.net/get"
-    email = "btcmingge@gmail.com"  # 可选，提高免费额度
+    api_key = os.getenv("DEEPL_API_KEY", "").strip()
+    if not api_key:
+        logger.warning("DEEPL_API_KEY not set, skip translation")
+        return text
 
-    params = {
-        "q": text[:450],
-        "langpair": "en|zh-CN",
-        "de": email,
+    # 免费 Key 通常以 :fx 结尾
+    if api_key.endswith(":fx"):
+        base_url = "https://api-free.deepl.com/v2/translate"
+    else:
+        base_url = "https://api.deepl.com/v2/translate"
+
+    headers = {
+        "Authorization": f"DeepL-Auth-Key {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "text": [text[:4500]],  # DeepL 单次有长度限制，推文足够
+        "source_lang": "EN",
+        "target_lang": "ZH",  # 简体中文
     }
 
     for attempt in range(1, max_retries + 1):
         try:
-            resp = requests.get(url, params=params, timeout=10)
+            resp = requests.post(
+                base_url, headers=headers, json=payload, timeout=15
+            )
+            if resp.status_code == 403:
+                logger.error("DeepL 403: API key invalid or plan not allowed")
+                return text
+            if resp.status_code == 456:
+                logger.error("DeepL quota exceeded")
+                return text
             resp.raise_for_status()
             data = resp.json()
-
-            if data.get("responseStatus") == 200:
-                translated = data["responseData"]["translatedText"]
-                if translated and translated.strip() and translated.strip() != text.strip():
-                    logger.info(f"Translated via MyMemory API: {translated[:80]}...")
-                    return translated.strip()
-                else:
-                    logger.warning(f"MyMemory returned empty or same text: {translated}")
-            else:
-                logger.warning(
-                    f"MyMemory responseStatus: {data.get('responseStatus')}, "
-                    f"details: {data.get('responseDetails')}"
-                )
+            translations = data.get("translations") or []
+            if translations:
+                translated = (translations[0].get("text") or "").strip()
+                if translated and translated != text.strip():
+                    logger.info(f"Translated via DeepL: {translated[:80]}...")
+                    return translated
+            logger.warning(f"DeepL empty result: {data}")
         except Exception as e:
-            logger.warning(f"MyMemory attempt {attempt} failed: {e}")
+            logger.warning(f"DeepL attempt {attempt} failed: {e}")
             if attempt < max_retries:
-                sleep_time = 2 ** attempt
-                time.sleep(sleep_time)
+                time.sleep(2 ** attempt)
 
-    logger.warning("MyMemory translation failed, using original text")
+    logger.warning("DeepL translation failed, using original text")
     return text
 
 
 def process_tweet(raw_text, max_length=900):
-    """Strip URLs, normalize whitespace, translate if English, truncate if needed."""
-    # 1. 去掉 URL
-    text = URL_PATTERN.sub('', raw_text)
-
-    # 2. 规范化空白
-    text = re.sub(r'[^\S\n]+', ' ', text)
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    """去链接、规范化空白、英文则 DeepL 翻译、超长截断"""
+    text = URL_PATTERN.sub("", raw_text)
+    text = re.sub(r"[^\S\n]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     text = text.strip()
 
-    # 3. 英文则翻译
     if is_mostly_english(text):
         text = translate_to_chinese(text)
 
-    # 4. 超长截断
     if len(text) > max_length:
         truncated = text[:max_length]
-        last_space = truncated.rfind(' ')
+        last_space = truncated.rfind(" ")
         if last_space > max_length * 0.8:
             truncated = truncated[:last_space]
         text = truncated.rstrip() + "..."
