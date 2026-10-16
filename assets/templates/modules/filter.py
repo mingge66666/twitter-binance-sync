@@ -55,7 +55,7 @@ def get_media_types(tweet):
 
 
 def get_image_urls(tweet, max_images=4):
-    """提取最多 4 张图，按 media_id 去重。"""
+    """提取最多 4 张图片，按 media_id 去重。"""
     urls = []
     seen = set()
     legacy = tweet.get("legacy", {})
@@ -94,8 +94,8 @@ def get_tweet_text(tweet):
 
 def filter_tweet(tweet, target_user_id, max_content_length=900):
     """
-    F-00 ~ F-08 过滤链。
-    Returns (passed: bool, filter_result: str, tweet_data: dict)
+    过滤链 F-00～F-08。
+    返回 (是否通过, 过滤结果, 推文字典)
     """
     tweet_id = tweet.get("rest_id", "") or tweet.get("id_str", "")
     legacy = tweet.get("legacy", {})
@@ -111,56 +111,48 @@ def filter_tweet(tweet, target_user_id, max_content_length=900):
         "image_urls": get_image_urls(tweet),
     }
 
-    # F-00: 去重
     if db.tweet_exists(tweet_id):
-        logger.debug(f"F-00 dedup: {tweet_id}")
+        logger.debug(f"F-00 去重跳过: {tweet_id}")
         return False, "dedup", tweet_data
 
-    # F-01: 视频
     if "video" in media_types or "animated_gif" in media_types:
-        logger.debug(f"F-01 drop_video: {tweet_id}")
+        logger.debug(f"F-01 跳过视频: {tweet_id}")
         return False, "drop_video", tweet_data
 
-    # F-02: 转推
     if legacy.get("retweeted_status_result") or raw_text.startswith("RT @"):
         tweet_data["tweet_type"] = "retweet"
-        logger.debug(f"F-02 drop_rt: {tweet_id}")
+        logger.debug(f"F-02 跳过转推: {tweet_id}")
         return False, "drop_rt", tweet_data
 
-    # F-03: 回复他人
     reply_to_user = legacy.get("in_reply_to_user_id_str", "")
     if reply_to_user and reply_to_user != target_user_id:
         tweet_data["tweet_type"] = "reply"
-        logger.debug(f"F-03 drop_reply: {tweet_id}")
+        logger.debug(f"F-03 跳过回复他人: {tweet_id}")
         return False, "drop_reply", tweet_data
 
-    # F-04: 自己的串帖续贴
     if reply_to_user == target_user_id:
         tweet_data["tweet_type"] = "thread_continuation"
-        logger.debug(f"F-04 drop_thread: {tweet_id}")
+        logger.debug(f"F-04 跳过串帖续贴: {tweet_id}")
         return False, "drop_thread", tweet_data
 
-    # F-05 / F-06: 纯图无字 / 空内容
     clean_text = process_tweet(raw_text, max_length=max_content_length)
     if "photo" in media_types and not clean_text.strip():
-        logger.debug(f"F-05 drop_image_only: {tweet_id}")
+        logger.debug(f"F-05 跳过纯图无文字: {tweet_id}")
         return False, "drop_image_only", tweet_data
     if not clean_text.strip():
-        logger.debug(f"F-06 drop_empty: {tweet_id}")
+        logger.debug(f"F-06 跳过空内容: {tweet_id}")
         return False, "drop_empty", tweet_data
 
-    # F-07: 个人引流链接（用原文，避免 URL 被剥掉）
     if has_personal_link(raw_text):
-        logger.debug(f"F-07 drop_personal_link: {tweet_id}")
+        logger.debug(f"F-07 跳过引流链接: {tweet_id}")
         return False, "drop_personal_link", tweet_data
 
-    # F-08: 推广 / 非行情
     if has_promo_or_offtopic(raw_text) or has_promo_or_offtopic(clean_text):
-        logger.debug(f"F-08 drop_offtopic: {tweet_id}")
+        logger.debug(f"F-08 跳过推广/非行情: {tweet_id}")
         return False, "drop_offtopic", tweet_data
 
     tweet_data["content_clean"] = clean_text
     tweet_data["filter_result"] = "pass"
     tweet_data["status"] = "pending"
-    logger.info(f"Tweet {tweet_id} passed filter, text: {clean_text[:80]}...")
+    logger.info(f"推文 {tweet_id} 通过过滤，正文: {clean_text[:80]}...")
     return True, "pass", tweet_data
